@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "outDir": "dist",
+    "strict": true,
+    "module": "commonjs",
+    "target": "es5",
+    "declaration": true,
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "preserveConstEnums": true,
+    "noImplicitAny": true
+  },
+  "include": ["src"]
+}

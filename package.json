@@ -1,0 +1,20 @@
+{
+  "name": "tock-node",
+  "version": "0.0.1",
+  "description": "Framework to create chatbots using Tock",
+  "main": "dist/index.js",
+  "author": "François Nguyen <https://github.com/phurytw>",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc"
+  },
+  "homepage": "https://github.com/theopenconversationkit/tock-node",
+  "dependencies": {
+    "websocket": "^1.0.29"
+  },
+  "devDependencies": {
+    "@types/node": "^12.7.4",
+    "@types/websocket": "^0.0.40",
+    "typescript": "^3.6.2"
+  }
+}
