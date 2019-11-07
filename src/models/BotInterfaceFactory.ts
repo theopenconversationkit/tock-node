@@ -7,4 +7,4 @@ export type BotInterfaceFactory = <TUserData>(
   bot: Bot<TUserData>,
   botRequest: BotRequest,
   userDataDispatch: UserDataDispatch<TUserData>
-) => BotInterface;
+) => Omit<BotInterface<TUserData>, 'userData' | 'dispatchUserData' | 'runStory'>;

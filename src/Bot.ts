@@ -7,21 +7,26 @@ import {
   BotRequest,
   UserRequest,
   BotResponse,
+  Suggestion,
 } from './models';
 import { StoryHandler } from './models/StoryHandler';
 import { UserDataDispatch } from './models/UserDataDispatch';
 import { BotInterfaceConfiguration } from './models/BotInterfaceConfiguration';
+import { PersistUser } from './models/PersistUser';
+import { RetrieveUser } from './models/RetrieveUser';
 
 export class Bot<TUserData extends {} = {}> {
   private connection?: connection;
   private queue: any[] = [];
   private queueTimer?: number;
   private botInterfaceFactories: { [connectorTypeId: string]: BotInterfaceFactory } = {};
+  private persistUser: PersistUser<TUserData> | undefined;
+  private retrieveUser: RetrieveUser<TUserData> | undefined;
   public userData: { [userId: string]: TUserData } = {};
   public userMessageBuffer: { [userId: string]: BotMessage[] } = {};
-  public storyDefinitions: { [intent: string]: StoryHandler<TUserData> } = {};
+  public storyDefinitions: { [intent: string]: StoryHandler<TUserData>[] } = {};
 
-  constructor(public apiKey: string, public host: string, public port: number) {
+  constructor(public apiKey: string, public host: string, public port: number = 443) {
     const client: WebSocketClient = new WebSocketClient();
     const url: URL = new URL(`/${apiKey}`, `wss://${host}:${port}`);
 
@@ -55,21 +60,14 @@ export class Bot<TUserData extends {} = {}> {
     client.connect(url.toString());
   }
 
-  public addStory = (
-    intent: string,
-    handler: (
-      bot: BotInterface,
-      request: UserRequest,
-      userData: TUserData,
-      userDataDispatch: UserDataDispatch<TUserData>
-    ) => void
-  ) => {
-    this.storyDefinitions[intent] = handler;
+  public addStory = (intent: string, ...handlers: StoryHandler<TUserData>[]) => {
+    this.storyDefinitions[intent] = handlers;
   };
 
-  public addInterface = (botInterfaceConfiguration: BotInterfaceConfiguration) =>
-    (this.botInterfaceFactories[botInterfaceConfiguration.connectorTypeId] =
-      botInterfaceConfiguration.botInterfaceFactory);
+  public addInterface = (botInterfaceConfiguration: BotInterfaceConfiguration) => {
+    this.botInterfaceFactories[botInterfaceConfiguration.connectorTypeId] =
+      botInterfaceConfiguration.botInterfaceFactory;
+  };
 
   public sendData = (data: string) => {
     if (this.connection && this.connection.connected) {
@@ -80,9 +78,19 @@ export class Bot<TUserData extends {} = {}> {
     }
   };
 
-  private createBotInterface = (botRequest: BotRequest): BotInterface => {
+  public setPersistUser = (persistUser: PersistUser<TUserData>) => {
+    this.persistUser = persistUser;
+  };
+
+  public setRetrieveUser = (retrieveUser: RetrieveUser<TUserData>) => {
+    this.retrieveUser = retrieveUser;
+  };
+
+  private createBotInterface = async (botRequest: BotRequest): Promise<BotInterface<TUserData>> => {
+    const userData: TUserData = await this.getUserData(botRequest);
+    const dispatchUserData: UserDataDispatch<TUserData> = await this.createUserDispatch(botRequest);
     return {
-      send: (input: string | BotMessage) => {
+      send: (input: string | BotMessage, ...quickReplies: Suggestion[]) => {
         const userRequest: UserRequest = botRequest.botRequest;
         const connectorTypeId: string = userRequest.context.connectorType.id;
         const userId: string = userRequest.context.userId.id;
@@ -90,8 +98,8 @@ export class Bot<TUserData extends {} = {}> {
           const message: BotMessage | undefined = this.botInterfaceFactories[connectorTypeId](
             this,
             botRequest,
-            this.createUserDispatch(botRequest)
-          ).send(input);
+            dispatchUserData
+          ).send(input, ...quickReplies);
           if (message) {
             this.userMessageBuffer[userId] = Array.isArray(this.userMessageBuffer[userId])
               ? [...this.userMessageBuffer[userId], message]
@@ -100,6 +108,17 @@ export class Bot<TUserData extends {} = {}> {
           return message;
         }
         return undefined;
+      },
+      userData,
+      dispatchUserData,
+      runStory: async (intent: string) => {
+        const userRequest = botRequest.botRequest;
+        if (this.storyDefinitions[intent]) {
+          for (let i = 0; i < this.storyDefinitions[intent].length; i++) {
+            const botInterface: BotInterface<TUserData> = await this.createBotInterface(botRequest);
+            await this.storyDefinitions[intent][i](botInterface, userRequest);
+          }
+        }
       },
     };
   };
@@ -122,18 +141,29 @@ export class Bot<TUserData extends {} = {}> {
     }
   };
 
+  private getUserData = (botRequest: BotRequest): TUserData | Promise<TUserData> => {
+    const userId: string = botRequest.botRequest.context.userId.id;
+    if (this.retrieveUser) {
+      return this.userData[userId] || this.retrieveUser(userId);
+    }
+    return this.userData[userId];
+  };
+
   private createUserDispatch = (botRequest: BotRequest): UserDataDispatch<TUserData> => {
     const userId: string = botRequest.botRequest.context.userId.id;
     if (!this.userData[userId]) {
       this.userData[userId] = {} as TUserData;
     }
-    return (input: ((prevUserData: TUserData) => TUserData) | TUserData): void => {
+    return (input: ((prevUserData: TUserData) => TUserData) | TUserData): void | Promise<void> => {
       if (typeof input === 'function') {
         this.userData[userId] = (input as (prevUserData: TUserData) => TUserData)(
           this.userData[userId]
         );
       } else {
         this.userData[userId] = input;
+      }
+      if (this.persistUser) {
+        return this.persistUser(userId, this.userData[userId]);
       }
     };
   };
@@ -142,20 +172,12 @@ export class Bot<TUserData extends {} = {}> {
     try {
       const userRequest = request.botRequest;
       if (userRequest.intent && this.storyDefinitions[userRequest.intent]) {
-        const botInterface: BotInterface = this.createBotInterface(request);
-        const userDispatch: UserDataDispatch<TUserData> = this.createUserDispatch(request);
         const userId = userRequest.context.userId.id;
 
-        // execute handler
-        const potentialPromise: Promise<void> | void = this.storyDefinitions[userRequest.intent](
-          botInterface,
-          userRequest,
-          this.userData[userId],
-          userDispatch
-        );
-
-        if (potentialPromise instanceof Promise) {
-          await potentialPromise;
+        // execute handlers
+        for (let i = 0; i < this.storyDefinitions[userRequest.intent].length; i++) {
+          const botInterface: BotInterface<TUserData> = await this.createBotInterface(request);
+          await this.storyDefinitions[userRequest.intent][i](botInterface, userRequest);
         }
 
         // if send has been used there should be data in the buffer

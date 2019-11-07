@@ -1,10 +1,24 @@
-import { I18nText, BotMessageCard, Action } from './models';
+import { I18nText, BotMessageCard, Action, Suggestion } from './models';
 
 export function i18nText(text: string): I18nText {
   return {
     text,
     args: [],
     toBeTranslated: true,
+    length: text.length,
+  };
+}
+
+export function suggestion(label: string): Suggestion {
+  return {
+    title: i18nText(label),
+  };
+}
+
+export function action(label: string, url?: string): Action {
+  return {
+    title: i18nText(label),
+    url,
   };
 }
 
