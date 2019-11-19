@@ -1,6 +1,6 @@
 {
   "name": "tock-node",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Framework to create chatbots using Tock",
   "main": "dist/index.js",
   "author": "François Nguyen <https://github.com/phurytw>",
