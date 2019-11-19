@@ -1,5 +1,5 @@
-export * from './tock';
 export * from './BotInterface';
-export * from './BotInterfaceFactory';
+export * from './EntityMap';
 export * from './StoryHandler';
+export * from './tock';
 export * from './UserDataDispatch';

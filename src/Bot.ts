@@ -1,34 +1,36 @@
-import { URL } from 'url';
+import { parse, UrlWithStringQuery, URL } from 'url';
 import { client as WebSocketClient, connection, IMessage } from 'websocket';
 import {
   BotInterface,
-  BotInterfaceFactory,
   BotMessage,
+  BotMessageSentence,
   BotRequest,
-  UserRequest,
   BotResponse,
+  Entity,
+  EntityMap,
   Suggestion,
+  UserRequest,
 } from './models';
-import { StoryHandler } from './models/StoryHandler';
-import { UserDataDispatch } from './models/UserDataDispatch';
-import { BotInterfaceConfiguration } from './models/BotInterfaceConfiguration';
 import { PersistUser } from './models/PersistUser';
 import { RetrieveUser } from './models/RetrieveUser';
+import { StoryHandler } from './models/StoryHandler';
+import { UserDataDispatch } from './models/UserDataDispatch';
+import { i18nText } from './utils';
 
 export class Bot<TUserData extends {} = {}> {
   private connection?: connection;
   private queue: any[] = [];
   private queueTimer?: number;
-  private botInterfaceFactories: { [connectorTypeId: string]: BotInterfaceFactory } = {};
   private persistUser: PersistUser<TUserData> | undefined;
   private retrieveUser: RetrieveUser<TUserData> | undefined;
   public userData: { [userId: string]: TUserData } = {};
   public userMessageBuffer: { [userId: string]: BotMessage[] } = {};
   public storyDefinitions: { [intent: string]: StoryHandler<TUserData>[] } = {};
 
-  constructor(public apiKey: string, public host: string, public port: number = 443) {
+  constructor(public apiKey: string, public host: string) {
     const client: WebSocketClient = new WebSocketClient();
-    const url: URL = new URL(`/${apiKey}`, `wss://${host}:${port}`);
+    const srcUrl: UrlWithStringQuery = parse(host);
+    const wsUrl: URL = new URL(`/${apiKey}`, `wss://${srcUrl.host}`);
 
     client.on('connectFailed', (error: Error) => {
       console.log(`Connect failed: ${error.toString()}`);
@@ -42,7 +44,7 @@ export class Bot<TUserData extends {} = {}> {
       });
       connection.on('close', () => {
         console.log('Connection closed. Reconnecting...');
-        client.connect(url.toString());
+        client.connect(wsUrl.toString());
       });
       connection.on('message', (message: IMessage) => {
         if (message.type === 'utf8' && message.utf8Data) {
@@ -57,16 +59,11 @@ export class Bot<TUserData extends {} = {}> {
       });
     });
 
-    client.connect(url.toString());
+    client.connect(wsUrl.toString());
   }
 
   public addStory = (intent: string, ...handlers: StoryHandler<TUserData>[]) => {
     this.storyDefinitions[intent] = handlers;
-  };
-
-  public addInterface = (botInterfaceConfiguration: BotInterfaceConfiguration) => {
-    this.botInterfaceFactories[botInterfaceConfiguration.connectorTypeId] =
-      botInterfaceConfiguration.botInterfaceFactory;
   };
 
   public sendData = (data: string) => {
@@ -92,25 +89,27 @@ export class Bot<TUserData extends {} = {}> {
     return {
       send: (input: string | BotMessage, ...quickReplies: Suggestion[]) => {
         const userRequest: UserRequest = botRequest.botRequest;
-        const connectorTypeId: string = userRequest.context.connectorType.id;
         const userId: string = userRequest.context.userId.id;
-        if (this.botInterfaceFactories[connectorTypeId]) {
-          const message: BotMessage | undefined = this.botInterfaceFactories[connectorTypeId](
-            this,
-            botRequest,
-            dispatchUserData
-          ).send(input, ...quickReplies);
-          if (message) {
-            this.userMessageBuffer[userId] = Array.isArray(this.userMessageBuffer[userId])
-              ? [...this.userMessageBuffer[userId], message]
-              : [message];
-          }
-          return message;
-        }
-        return undefined;
+        const message: BotMessage =
+          typeof input === 'string'
+            ? ({
+                delay: 0,
+                suggestions: quickReplies,
+                text: i18nText(input),
+                type: 'sentence',
+              } as BotMessageSentence)
+            : input;
+        this.userMessageBuffer[userId] = Array.isArray(this.userMessageBuffer[userId])
+          ? [...this.userMessageBuffer[userId], message]
+          : [message];
+        return message;
       },
       userData,
+      userContext: userData,
       dispatchUserData,
+      dispatchUserContext: dispatchUserData,
+      setUserContext: dispatchUserData,
+      setUserData: dispatchUserData,
       runStory: async (intent: string) => {
         const userRequest = botRequest.botRequest;
         if (this.storyDefinitions[intent]) {
@@ -120,6 +119,17 @@ export class Bot<TUserData extends {} = {}> {
           }
         }
       },
+      entities: botRequest.botRequest.entities.reduce<EntityMap>(
+        (prev: EntityMap, cur: Entity) => ({
+          ...prev,
+          [cur.type]: prev[cur.type] ? [...prev[cur.type], cur.content] : [cur.content],
+        }),
+        {}
+      ),
+      query:
+        botRequest.botRequest.message.type === 'text'
+          ? botRequest.botRequest.message.text
+          : undefined,
     };
   };
 
