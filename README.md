@@ -5,12 +5,19 @@ Build chatbots using Tock and NodeJS
 ## Prerequisites
 
 - Run a [Tock bot in API mode](https://doc.tock.ai/tock/en/dev/bot-api/)
-- Create a Bot application using the **web** connector type in Tock Studio and get your API key
+- Create a *Bot configuration* using the in Tock Studio and get your API key
+
+### With `demo.tock.ai`
+
+You can use the [Tock demo instance](https://demo.tock.ai) as an alternative to setting up a Tock bot.
 
 ## Installation
 
 ```
+# yarn
 yarn add tock-node
+
+# npm
 npm i tock-node
 ```
 
@@ -21,7 +28,7 @@ _The package has TypeScript type definitions_
 ```js
 const { Bot } = require('tock-node');
 
-const bot = new Bot('<API_KEY>', '<TOCK_SERVER_URL>');
+const bot = new Bot('<API_KEY>', '<TOCK_CONNECTOR_URL>');
 
 bot.addStory('intent', bot => {
   bot.send('Hello World!');
@@ -138,3 +145,61 @@ const handler2 = bot => send('Second handler');
 bot.addStory('intentA', handler1, handler2);
 bot.addStory('intentB', handler1, handler2);
 ```
+
+## API Reference
+
+### `new Bot(apiKey, connectorUrl)`
+
+* `apiKey` {string} API key (found in Tock Studio under Configuration)            |
+* `connectorUrl` {string} Tock Connector URL (found in Tock Studio under Configuration)
+
+Creates a Bot instance. The bot connects right away to the Tock connector using the provided `apiKey`. The bot instance exposes all methods that help building a bot.
+
+### `bot.addStory(intent, ...storyHandlers)`
+
+* `intent` {string}
+* `storyHandlers` {((botInterface, userRequest) => void | Promise<void>)[]}
+  * `botInterface` {[BotInterface](#BotInterface)}
+  * `userRequest` {[UserRequest](#UserRequest)}
+  * Returns: {Promise<void>|void}
+
+Adds a handler for a specific intent. The intent is detected by Tock and configurable in Tock Studio. `addStory` is the main way to add behavior to your bot.
+
+It is possible to add multiple `storyHandlers` however they can only be set in the same `addStory` call for a certain `intent`. If `addStory` is called with an existing `intent` it will overwrite the previous `storyHandlers`.
+
+When using multiple `storyHandlers` they will be executed in order.
+
+`storyHandlers` can individually return [`Promises`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise), the bot will wait until the `Promise` resolves before running the next handler.
+
+Once all the `storyHandlers` are executed. The bot will send the response back to Tock/the user.
+
+### `BotInterface`
+
+* `send` {(text, ...quickReplies) => [BotMessage](#BotMessage)}
+  * `text` {string}
+  * `quickReplies` {Suggestion[]}
+* `send` {(input, ...quickReplies) => [BotMessage](#BotMessage)} send overload
+  * `input` {[BotMessage](#BotMessage)}
+  * `quickReplies` {Suggestion[]}
+* `userData` {Object}
+* `dispatchUserData` {Object|(prevUserData) => Object}
+
+`BotInterface` is an object created for each story handler. The object contains a `send` method that can be used to set up a response to the user request. Also a `userData` property that contains data relative to a user and a `dispatchUserData` method to change it.
+
+## FAQ
+
+### What is my API key and my Tock connector URL?
+
+You can find both in your Bot Configuration.
+
+### How do I talk to my bot?
+
+1. The easiest way is to go to the [Test page in Tock Studio](https://demo.tock.ai/test).
+
+2. Another alternative is to send HTTP requests to your Tock bot at the connector URL following [this API](https://github.com/theopenconversationkit/tock/tree/master/bot/connector-web).
+
+There is a [UI library (`tock-react-kit`)](https://github.com/theopenconversationkit/tock-react-kit) that allows you to quickly setup a chat interface.
+
+### Example code?
+
+There is a example bot at our [`tock-node-example` repository](https://github.com/theopenconversationkit/tock-node-example) with a chat UI (made with [`tock-react-kit`](https://github.com/theopenconversationkit/tock-react-kit)). It requires a [Unsplash application](https://unsplash.com/developers) to run properly.

@@ -6,12 +6,12 @@ export interface BotInterface<TUserData extends {} = {}> {
   /**
    * Sends a simple text message
    */
-  send(text: string, ...quickReplies: Suggestion[]): BotMessage | undefined;
+  send(text: string, ...quickReplies: Suggestion[]): BotMessage;
   /**
    * Sends a message
    */
-  send(message: BotMessage): BotMessage | undefined;
-  send(input: string | BotMessage, ...quickReplies: Suggestion[]): BotMessage | undefined;
+  send(message: BotMessage): BotMessage;
+  send(input: string | BotMessage, ...quickReplies: Suggestion[]): BotMessage;
 
   userData: TUserData;
   userContext: TUserData;
