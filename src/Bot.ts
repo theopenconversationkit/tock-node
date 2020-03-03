@@ -27,10 +27,9 @@ export class Bot<TUserData extends {} = {}> {
   public userMessageBuffer: { [userId: string]: BotMessage[] } = {};
   public storyDefinitions: { [intent: string]: StoryHandler<TUserData>[] } = {};
 
-  constructor(public apiKey: string, public host: string) {
+  constructor(public apiKey: string, public host: string = 'demo-bot.tock.ai', public port: number = 443, public protocol: string = 'wss') {
     const client: WebSocketClient = new WebSocketClient();
-    const srcUrl: UrlWithStringQuery = parse(host);
-    const wsUrl: URL = new URL(`/${apiKey}`, `wss://${srcUrl.host}`);
+    const wsUrl: URL = new URL(`/${apiKey}`, `${protocol}://${host}:${port}`);
 
     client.on('connectFailed', (error: Error) => {
       console.log(`Connect failed: ${error.toString()}`);
@@ -59,6 +58,7 @@ export class Bot<TUserData extends {} = {}> {
       });
     });
 
+    console.log(`Connecting to ${wsUrl}`)
     client.connect(wsUrl.toString());
   }
 
