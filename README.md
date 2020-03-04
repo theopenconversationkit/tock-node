@@ -21,12 +21,17 @@ _The package has TypeScript type definitions_
 ```js
 const { Bot } = require('tock-node');
 
-const bot = new Bot('<API_KEY>', '<TOCK_SERVER_URL>');
+const bot = new Bot('<TOCK_API_KEY>', '<TOCK_HOST>', <TOCK_WS_PORT>, '<TOCK_WS_PROTOCOL>');
 
 bot.addStory('intent', bot => {
   bot.send('Hello World!');
 });
 ```
+
+Default Tock platform host, port and WebSocket protocol are `demo-bot.tock.ai` (the public demo), 
+`443` and `wss` (secured port/protocol).
+
+For more examples, see [`tock-node-example`](https://github.com/theopenconversationkit/tock-node-example).
 
 ### Sending messages
 
