@@ -10,7 +10,10 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "prepare": "tsc"
+    "prepare": "tsc",
+    "version": "auto-changelog -p && git add CHANGELOG.md",
+    "test-release": "np --preview",
+    "release": "np"
   },
   "homepage": "https://github.com/theopenconversationkit/tock-node",
   "dependencies": {
@@ -19,6 +22,16 @@
   "devDependencies": {
     "@types/node": "^12.7.4",
     "@types/websocket": "^0.0.40",
+    "auto-changelog": "^2.0.0",
+    "np": "^6.2.1",
     "typescript": "^3.6.2"
+  },
+  "auto-changelog": {
+    "includeBranch": [
+      "master"
+    ]
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
   }
 }
