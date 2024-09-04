@@ -3,7 +3,7 @@ import { BotMessage } from './BotMessage';
 import { ResponseContext } from './ResponseContext';
 
 export interface BotResponse {
-  botResponse: {
+  botResponse?: {
     messages: BotMessage[];
     storyId: string;
     step?: string;
@@ -11,4 +11,10 @@ export interface BotResponse {
     context: ResponseContext;
   };
   requestId: string;
+  botConfiguration?: {
+    stories: {
+        mainIntent: string;
+        name: string;
+    }[]
+  }
 }

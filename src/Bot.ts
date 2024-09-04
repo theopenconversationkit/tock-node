@@ -31,35 +31,50 @@ export class Bot<TUserData extends {} = {}> {
     const client: WebSocketClient = new WebSocketClient();
     const wsUrl: URL = new URL(`/${apiKey}`, `${protocol}://${host}:${port}`);
 
-    client.on('connectFailed', (error: Error) => {
-      console.log(`Connect failed: ${error.toString()}`);
-    });
+    setTimeout(() => {
+      client.on('connectFailed', (error: Error) => {
+        console.log(`Connect failed: ${error.toString()}`);
+      });
 
-    client.on('connect', (connection: connection) => {
-      console.log('Connection established');
-      this.connection = connection;
-      connection.on('error', (error: Error) => {
-        console.log(`Connection error: ${error.toString()}`);
-      });
-      connection.on('close', () => {
-        console.log('Connection closed. Reconnecting...');
-        client.connect(wsUrl.toString());
-      });
-      connection.on('message', (message: IMessage) => {
-        if (message.type === 'utf8' && message.utf8Data) {
-          try {
-            const request: BotRequest = JSON.parse(message.utf8Data);
-            this.handleBotRequest(request);
-          } catch (error) {
+      client.on('connect', (connection: connection) => {
+        console.log('Connection established');
+        this.connection = connection;
+        connection.on('error', (error: Error) => {
+          console.log(`Connection error: ${error.toString()}`);
+        });
+        connection.on('close', () => {
+          console.log('Connection closed. Reconnecting...');
+          client.connect(wsUrl.toString());
+        });
+
+        try {
+          this.handleConfigurationBotRequest().then(() => {
+              console.log('Configuration request sent');
+          });
+
+        } catch (error) {
             // not a JSON response
             console.log(error.toString());
-          }
         }
-      });
-    });
 
-    console.log(`Connecting to ${wsUrl}`)
-    client.connect(wsUrl.toString());
+        connection.on('message', (message: IMessage) => {
+          if (message.type === 'utf8' && message.utf8Data) {
+            try {
+              const request: BotRequest = JSON.parse(message.utf8Data);
+              this.handleBotRequest(request);
+            } catch (error) {
+              // not a JSON response
+              console.log(error.toString());
+            }
+          }
+        });
+
+
+      });
+
+      console.log(`Connecting to ${wsUrl}`)
+      client.connect(wsUrl.toString());
+    });
   }
 
   public addStory = (intent: string, ...handlers: StoryHandler<TUserData>[]) => {
@@ -181,13 +196,14 @@ export class Bot<TUserData extends {} = {}> {
   private handleBotRequest = async (request: BotRequest): Promise<void> => {
     try {
       const userRequest = request.botRequest;
-      if (userRequest.intent && this.storyDefinitions[userRequest.intent]) {
+      const intent = userRequest.intent;
+      if (intent && this.storyDefinitions[intent]) {
         const userId = userRequest.context.userId.id;
 
         // execute handlers
-        for (let i = 0; i < this.storyDefinitions[userRequest.intent].length; i++) {
+        for (let i = 0; i < this.storyDefinitions[intent].length; i++) {
           const botInterface: BotInterface<TUserData> = await this.createBotInterface(request);
-          await this.storyDefinitions[userRequest.intent][i](botInterface, userRequest);
+          await this.storyDefinitions[intent][i](botInterface, userRequest);
         }
 
         // if send has been used there should be data in the buffer
@@ -213,6 +229,27 @@ export class Bot<TUserData extends {} = {}> {
           this.userMessageBuffer[userId] = [];
         }
       }
+    } catch (error) {
+      // not JSON or invalid request
+      console.log('WebSocket message error', error.toString());
+    }
+  };
+
+  private handleConfigurationBotRequest = async (): Promise<void> => {
+    try {
+      const response: BotResponse = {
+          requestId: Math.random().toString(),
+          botConfiguration: {
+                stories: Object.keys(this.storyDefinitions).map
+                (intent => ({
+                  mainIntent: intent,
+                  name: intent
+                }))
+            }
+        };
+      const data = JSON.stringify(response)
+      console.log('Send configuration', data);
+      this.sendData(data);
     } catch (error) {
       // not JSON or invalid request
       console.log('WebSocket message error', error.toString());
