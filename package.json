@@ -1,6 +1,6 @@
 {
   "name": "tock-node",
-  "version": "20.3.0",
+  "version": "20.3.1-0",
   "description": "Nodejs framework to create stories for Tock chatbots",
   "repository": {
     "type": "git",
