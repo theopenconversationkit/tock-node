@@ -27,7 +27,7 @@
     "@types/node": "^12.7.4",
     "@types/websocket": "^0.0.40",
     "auto-changelog": "^2.0.0",
-    "np": "^6.2.1",
+    "np": "^8.0.4",
     "typescript": "^3.6.2"
   },
   "auto-changelog": {
