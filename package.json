@@ -1,7 +1,7 @@
 {
   "name": "tock-node",
   "version": "20.3.0",
-  "description": "Framework to create chatbots using Tock",
+  "description": "Nodejs framework to create stories for Tock chatbots",
   "repository": {
     "type": "git",
     "url": "https://github.com/theopenconversationkit/tock-node.git"
@@ -34,6 +34,9 @@
     "includeBranch": [
       "master"
     ]
+  },
+  "engines": {
+    "node": ">=20.10.0"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org"

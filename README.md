@@ -1,6 +1,26 @@
-# tock-node
+[![Dependencies](https://img.shields.io/librariesio/release/npm/tock-node)](https://img.shields.io/librariesio/release/npm/tock-node)
 
-Build chatbots using Tock and NodeJS
+[![Latest release](https://img.shields.io/npm/v/tock-node)](https://img.shields.io/npm/v/tock-node)
+[![Release Date](https://img.shields.io/github/release-date/theopenconversationkit/tock-node)](https://github.com/theopenconversationkit/tock-node/releases)
+[![NPM Downloads](https://img.shields.io/npm/dy/tock-node)](https://img.shields.io/npm/dy/tock-node)
+
+[![Gitter](https://badges.gitter.im/tockchat/Lobby.svg)](https://gitter.im/tockchat/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=body_badge)
+[![Contributors](https://img.shields.io/github/contributors-anon/theopenconversationkit/tock-node)](https://github.com/theopenconversationkit/tock-node/graphs/contributors)
+[![Commit Activity](https://img.shields.io/github/commit-activity/y/theopenconversationkit/tock-node)](https://github.com/theopenconversationkit/tock-node/pulse/monthly)
+
+[![Home](https://img.shields.io/website?label=home&down_message=offline&up_message=doc.tock.ai&url=https%3A%2F%2Fdoc.tock.ai)](https://doc.tock.ai)
+[![Demo](https://img.shields.io/website?label=demo&down_message=offline&up_message=live&url=https%3A%2F%2Fdoc.tock.ai)](https://doc.tock.ai)
+[![License](https://img.shields.io/github/license/theopenconversationkit/tock-node)](https://github.com/theopenconversationkit/tock-react-kit/blob/master/LICENSE)
+
+# Tock Node
+
+<img alt="Tock Logo" src="http://doc.tock.ai/tock/en/assets/images/logo.svg" style="width: 150px;"><br>
+
+A Nodejs framework to write stories in JS for a [Tock](https://doc.tock.ai) chatbot.
+
+🏠 Home: [https://doc.tock.ai](https://doc.tock.ai)
+
+💬 Contact: [https://gitter.im/tockchat/Lobby](https://gitter.im/tockchat/Lobby)
 
 ## Prerequisites
 
