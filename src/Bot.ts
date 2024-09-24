@@ -196,14 +196,16 @@ export class Bot<TUserData extends {} = {}> {
   private handleBotRequest = async (request: BotRequest): Promise<void> => {
     try {
       const userRequest = request.botRequest;
+      const storyId = userRequest.storyId;
       const intent = userRequest.intent;
-      if (intent && this.storyDefinitions[intent]) {
+      const story =  this.storyDefinitions[storyId] || (intent ? this.storyDefinitions[intent] : undefined);
+      if (story) {
         const userId = userRequest.context.userId.id;
 
         // execute handlers
-        for (let i = 0; i < this.storyDefinitions[intent].length; i++) {
+        for (let i = 0; i < story.length; i++) {
           const botInterface: BotInterface<TUserData> = await this.createBotInterface(request);
-          await this.storyDefinitions[intent][i](botInterface, userRequest);
+          await story[i](botInterface, userRequest);
         }
 
         // if send has been used there should be data in the buffer
